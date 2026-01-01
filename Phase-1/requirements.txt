@@ -1,0 +1,5 @@
+# Requirements for Todo Console Application
+# Using Python standard library only (no external dependencies)
+# This file exists to document the Python version requirement
+
+# Python 3.13+ is required for this application
