@@ -1,0 +1,2 @@
+# Requirements for Todo Application
+# Currently no external dependencies beyond Python standard library
