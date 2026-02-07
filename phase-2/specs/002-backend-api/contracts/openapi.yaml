@@ -1,0 +1,326 @@
+openapi: 3.1.0
+info:
+  title: Todo Backend REST API
+  description: RESTful API for multi-user todo management with JWT authentication
+  version: 1.0.0
+  contact:
+    name: Hackathon Phase-2
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns server health status (no authentication required)
+      security: []
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/todos:
+    get:
+      summary: List all todos for authenticated user
+      description: Returns all todos belonging to the authenticated user, sorted by creation date (newest first)
+      tags: [Todos]
+      responses:
+        '200':
+          description: List of todos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TodoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create a new todo
+      description: Creates a new todo for the authenticated user
+      tags: [Todos]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTodoInput'
+      responses:
+        '201':
+          description: Todo created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/todos/{todoId}:
+    parameters:
+      - name: todoId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Unique todo identifier
+
+    get:
+      summary: Get a single todo by ID
+      description: Returns a specific todo if owned by the authenticated user
+      tags: [Todos]
+      responses:
+        '200':
+          description: Todo details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update a todo
+      description: Updates an existing todo owned by the authenticated user
+      tags: [Todos]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTodoInput'
+      responses:
+        '200':
+          description: Todo updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    delete:
+      summary: Delete a todo
+      description: Deletes a todo owned by the authenticated user
+      tags: [Todos]
+      responses:
+        '204':
+          description: Todo deleted successfully (no content)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/todos/{todoId}/toggle:
+    parameters:
+      - name: todoId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Unique todo identifier
+
+    patch:
+      summary: Toggle todo completion status
+      description: Inverts the completed status of a todo owned by the authenticated user
+      tags: [Todos]
+      responses:
+        '200':
+          description: Todo status toggled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from Better Auth authentication
+
+  schemas:
+    CreateTodoInput:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Task title (required)
+          example: Buy groceries
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Task description (optional)
+          example: Milk, eggs, bread
+
+    UpdateTodoInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          nullable: true
+          description: New task title
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: New task description
+        completed:
+          type: boolean
+          nullable: true
+          description: New completion status
+
+    TodoResponse:
+      type: object
+      required:
+        - id
+        - userId
+        - title
+        - completed
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          description: Unique todo identifier
+          example: 1
+        userId:
+          type: string
+          description: Owner user ID
+          example: user_123abc
+        title:
+          type: string
+          description: Task title
+          example: Buy groceries
+        description:
+          type: string
+          nullable: true
+          description: Task description
+          example: Milk, eggs, bread
+        completed:
+          type: boolean
+          description: Completion status
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp (ISO 8601)
+          example: "2026-01-12T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp (ISO 8601)
+          example: "2026-01-12T10:00:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message
+          example: Todo not found
+        code:
+          type: string
+          description: Machine-readable error code
+          example: NOT_FOUND
+
+  responses:
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            detail: Invalid or expired token
+            code: UNAUTHORIZED
+
+    Forbidden:
+      description: Not authorized to access this resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            detail: Not authorized to access this todo
+            code: FORBIDDEN
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            detail: Todo not found
+            code: NOT_FOUND
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    loc:
+                      type: array
+                      items:
+                        type: string
+                    msg:
+                      type: string
+                    type:
+                      type: string
+
+tags:
+  - name: Todos
+    description: Todo CRUD operations
