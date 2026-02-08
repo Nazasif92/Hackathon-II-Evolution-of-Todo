@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCP Tools for Todo AI Chatbot",
+  "description": "Tool definitions for the MCP server",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "add_task",
+      "description": "Create a new task for the user. Use this when the user wants to add, create, or remember something to do.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["user_id", "title"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The authenticated user's ID"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "The task title (required, max 200 characters)"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "Optional task description"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "task": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "title": { "type": "string" },
+              "description": { "type": "string", "nullable": true },
+              "completed": { "type": "boolean" },
+              "created_at": { "type": "string", "format": "date-time" }
+            }
+          },
+          "error": { "type": "string", "nullable": true }
+        }
+      },
+      "examples": [
+        {
+          "input": {
+            "user_id": "550e8400-e29b-41d4-a716-446655440000",
+            "title": "Buy groceries"
+          },
+          "output": {
+            "success": true,
+            "task": {
+              "id": 1,
+              "title": "Buy groceries",
+              "description": null,
+              "completed": false,
+              "created_at": "2026-02-04T10:00:00Z"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "list_tasks",
+      "description": "List the user's tasks, optionally filtered by status. Use this when the user wants to see, show, or view their tasks.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["user_id"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The authenticated user's ID"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["all", "pending", "completed"],
+            "default": "all",
+            "description": "Filter by task status"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "integer" },
+                "title": { "type": "string" },
+                "description": { "type": "string", "nullable": true },
+                "completed": { "type": "boolean" },
+                "created_at": { "type": "string", "format": "date-time" }
+              }
+            }
+          },
+          "count": { "type": "integer" },
+          "error": { "type": "string", "nullable": true }
+        }
+      },
+      "examples": [
+        {
+          "input": {
+            "user_id": "550e8400-e29b-41d4-a716-446655440000",
+            "status": "pending"
+          },
+          "output": {
+            "success": true,
+            "tasks": [
+              {
+                "id": 1,
+                "title": "Buy groceries",
+                "description": null,
+                "completed": false,
+                "created_at": "2026-02-04T10:00:00Z"
+              }
+            ],
+            "count": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "complete_task",
+      "description": "Mark a task as completed. Use this when the user says they finished, completed, or are done with a task.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["user_id", "task_id"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The authenticated user's ID"
+          },
+          "task_id": {
+            "type": "integer",
+            "description": "The ID of the task to complete"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "task": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "title": { "type": "string" },
+              "completed": { "type": "boolean" }
+            }
+          },
+          "error": { "type": "string", "nullable": true }
+        }
+      },
+      "examples": [
+        {
+          "input": {
+            "user_id": "550e8400-e29b-41d4-a716-446655440000",
+            "task_id": 1
+          },
+          "output": {
+            "success": true,
+            "task": {
+              "id": 1,
+              "title": "Buy groceries",
+              "completed": true
+            }
+          }
+        },
+        {
+          "input": {
+            "user_id": "550e8400-e29b-41d4-a716-446655440000",
+            "task_id": 999
+          },
+          "output": {
+            "success": false,
+            "error": "Task not found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "delete_task",
+      "description": "Delete a task permanently. Use this when the user wants to remove, delete, or cancel a task.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["user_id", "task_id"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The authenticated user's ID"
+          },
+          "task_id": {
+            "type": "integer",
+            "description": "The ID of the task to delete"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "deleted_task": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "title": { "type": "string" }
+            }
+          },
+          "error": { "type": "string", "nullable": true }
+        }
+      },
+      "examples": [
+        {
+          "input": {
+            "user_id": "550e8400-e29b-41d4-a716-446655440000",
+            "task_id": 1
+          },
+          "output": {
+            "success": true,
+            "deleted_task": {
+              "id": 1,
+              "title": "Buy groceries"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_task",
+      "description": "Update an existing task's title or description. Use this when the user wants to change, modify, rename, or edit a task.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["user_id", "task_id"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The authenticated user's ID"
+          },
+          "task_id": {
+            "type": "integer",
+            "description": "The ID of the task to update"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "New task title (optional)"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "New task description (optional)"
+          }
+        },
+        "anyOf": [
+          { "required": ["title"] },
+          { "required": ["description"] }
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "task": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "title": { "type": "string" },
+              "description": { "type": "string", "nullable": true },
+              "completed": { "type": "boolean" },
+              "updated_at": { "type": "string", "format": "date-time" }
+            }
+          },
+          "error": { "type": "string", "nullable": true }
+        }
+      },
+      "examples": [
+        {
+          "input": {
+            "user_id": "550e8400-e29b-41d4-a716-446655440000",
+            "task_id": 1,
+            "title": "Buy organic groceries"
+          },
+          "output": {
+            "success": true,
+            "task": {
+              "id": 1,
+              "title": "Buy organic groceries",
+              "description": null,
+              "completed": false,
+              "updated_at": "2026-02-04T11:00:00Z"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "errorCodes": {
+    "TASK_NOT_FOUND": "The specified task does not exist or does not belong to the user",
+    "INVALID_INPUT": "Required fields are missing or invalid",
+    "DATABASE_ERROR": "A database operation failed",
+    "UNAUTHORIZED": "User ID does not match authenticated user"
+  }
+}

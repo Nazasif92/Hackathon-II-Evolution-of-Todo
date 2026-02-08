@@ -1,0 +1,296 @@
+openapi: 3.1.0
+info:
+  title: Todo AI Chatbot API
+  version: 1.0.0
+  description: Chat endpoint for AI-powered task management
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/chat:
+    post:
+      summary: Send a chat message
+      description: |
+        Send a natural language message to the AI assistant.
+        The assistant will interpret the intent and perform task operations.
+      operationId: sendChatMessage
+      tags:
+        - Chat
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              newConversation:
+                summary: Start new conversation
+                value:
+                  conversation_id: null
+                  message: "Add a task to buy groceries"
+              existingConversation:
+                summary: Continue conversation
+                value:
+                  conversation_id: "550e8400-e29b-41d4-a716-446655440000"
+                  message: "Mark that as done"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              examples:
+                taskCreated:
+                  summary: Task created
+                  value:
+                    conversation_id: "550e8400-e29b-41d4-a716-446655440000"
+                    message_id: "660e8400-e29b-41d4-a716-446655440001"
+                    response: "I've added 'buy groceries' to your task list."
+                    tasks_affected:
+                      - id: 1
+                        action: "created"
+                        title: "buy groceries"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: true
+                message: "Message cannot be empty"
+                code: "INVALID_REQUEST"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: true
+                message: "Please sign in to continue"
+                code: "AUTH_REQUIRED"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: true
+                message: "I'm having trouble right now. Please try again."
+                code: "AGENT_ERROR"
+
+  /api/chat/conversations:
+    get:
+      summary: List user's conversations
+      description: Get a list of the user's recent conversations
+      operationId: listConversations
+      tags:
+        - Chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+          description: Maximum number of conversations to return
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/chat/conversations/{conversation_id}/messages:
+    get:
+      summary: Get conversation messages
+      description: Get messages from a specific conversation
+      operationId: getConversationMessages
+      tags:
+        - Chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Conversation ID
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Maximum number of messages to return
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from Better Auth
+
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Existing conversation ID, or null to start new conversation
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: User's natural language message
+
+    ChatResponse:
+      type: object
+      required:
+        - conversation_id
+        - message_id
+        - response
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+          description: Conversation ID (new or existing)
+        message_id:
+          type: string
+          format: uuid
+          description: ID of the assistant's response message
+        response:
+          type: string
+          description: AI assistant's response text
+        tasks_affected:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskAffected'
+          description: List of tasks created, updated, or deleted
+
+    TaskAffected:
+      type: object
+      required:
+        - id
+        - action
+        - title
+      properties:
+        id:
+          type: integer
+          description: Task ID
+        action:
+          type: string
+          enum: [created, updated, completed, deleted]
+          description: Action performed on the task
+        title:
+          type: string
+          description: Task title
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        message_count:
+          type: integer
+          description: Number of messages in conversation
+        last_message_preview:
+          type: string
+          description: Truncated last message for display
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - code
+      properties:
+        error:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+          description: User-friendly error message
+        code:
+          type: string
+          enum:
+            - INVALID_REQUEST
+            - AUTH_REQUIRED
+            - TASK_NOT_FOUND
+            - CONVERSATION_NOT_FOUND
+            - AGENT_ERROR
+            - RATE_LIMITED
+          description: Machine-readable error code
