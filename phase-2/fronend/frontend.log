@@ -1,0 +1,15 @@
+
+> todo-frontend@0.1.0 dev
+> next dev
+
+⚠ Port 3000 is in use by process 8752, using available port 3008 instead.
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3008
+- Network:       http://192.168.0.36:3008
+- Environments: .env
+
+✓ Starting...
+✓ Ready in 3s
+○ Compiling / ...
+ GET / 200 in 5.4s (compile: 5.0s, render: 366ms)
+ GET / 200 in 173ms (compile: 50ms, render: 123ms)
