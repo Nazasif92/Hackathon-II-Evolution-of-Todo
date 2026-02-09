@@ -51,10 +51,7 @@ function getOrCreateAuthConfig() {
       secret: process.env.BETTER_AUTH_SECRET!,
       baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:3000",
       plugins: [
-        jwt({
-          expiresIn: 60 * 60 * 24,
-          issuer: "better-auth",
-        }),
+        jwt(),
       ],
     });
     console.log("[Auth] Better Auth initialized successfully");
